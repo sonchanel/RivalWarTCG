@@ -625,6 +625,7 @@ GameObject:
   - component: {fileID: 6542965787185657360}
   - component: {fileID: 6768449557885070377}
   - component: {fileID: 5222943308131080332}
+  - component: {fileID: 7755259081230006382}
   m_Layer: 0
   m_Name: CardPrefab
   m_TagString: Untagged
@@ -747,6 +748,18 @@ BoxCollider2D:
   m_AutoTiling: 0
   m_Size: {x: 2.5, y: 3.5}
   m_EdgeRadius: 0
+--- !u!225 &7755259081230006382
+CanvasGroup:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 3044777006944295037}
+  m_Enabled: 1
+  m_Alpha: 1
+  m_Interactable: 1
+  m_BlocksRaycasts: 1
+  m_IgnoreParentGroups: 0
 --- !u!1 &4430647190410557564
 GameObject:
   m_ObjectHideFlags: 0
