@@ -149,56 +149,44 @@ public class CardMovement : MonoBehaviour, IDragHandler, IPointerDownHandler, IP
     // --- REPLACE only the TryPlaceOnLane() method in your CardMovement.cs file with this implementation ---
     private void TryPlaceOnLane()
     {
-        // đảm bảo có BoardManager và cardDisplay
-        if (BoardManager.Instance == null || cardDisplay == null)
-        {
-            TransitionToState0();
-            return;
-        }
-
         Vector2 mousePos = Input.mousePosition;
-        Camera cam = (canvas != null) ? canvas.worldCamera : Camera.main;
 
-        // duyệt qua các lane đã cache trong BoardManager
-        int lanesCount = BoardManager.Instance.LaneCount;
-        for (int i = 0; i < lanesCount; i++)
+        for (int i = 0; i < BoardManager.Instance.totalLanes; i++)
         {
             GridCell cell = BoardManager.Instance.GetLane(i);
             if (cell == null) continue;
 
             RectTransform laneRect = cell.GetComponent<RectTransform>();
-            if (laneRect == null) continue;
-
-            // kiểm tra con trỏ chuột có nằm trong rect của lane này không
-            if (RectTransformUtility.RectangleContainsScreenPoint(laneRect, mousePos, cam))
+            if (laneRect != null && RectTransformUtility.RectangleContainsScreenPoint(laneRect, mousePos))
             {
-                // thử đặt card qua BoardManager (BoardManager sẽ gọi GridCell.CanPlace & PlaceCard)
-                bool placed = BoardManager.Instance.TryPlaceCard(cardDisplay, i);
-                if (placed)
+                Debug.Log($"Chuột đang ở trong Lane {i} ({cell.kind})");
+
+                bool ok = TurnManager.Instance.PlayCard(cardDisplay, i);
+                //if (BoardManager.Instance.TryPlaceCard(cardDisplay, i))
+                if(ok)
                 {
-                    // nếu đặt thành công -> remove khỏi hand
-                    var hand = UnityEngine.Object.FindFirstObjectByType<HandManager>();
+                    Debug.Log($"Card {cardDisplay.cardData.name} đặt thành công vào Lane {i}");
+                    var hand = FindFirstObjectByType<HandManager>();
                     if (hand != null)
                     {
                         hand.RemoveCardFromHand(this.gameObject);
                     }
-
-                    // disable tương tác kéo trên card đã đặt
                     var cg = GetComponent<CanvasGroup>();
                     if (cg != null) cg.blocksRaycasts = false;
+
+                    if (playArrow != null) playArrow.SetActive(false);
 
                     currentState = 0;
                     return;
                 }
                 else
                 {
-                    // Lane bị chặn vì loại lane / đã đầy -> break (đã hit lane chứa chuột)
-                    break;
+                    Debug.LogWarning($"Không thể đặt {cardDisplay.cardData.name} vào Lane {i} (Lane full hoặc sai loại)");
                 }
             }
         }
 
-        // nếu không đặt được ở lane nào -> trả về vị trí cũ (hand)
+        Debug.Log("Không tìm thấy lane hợp lệ → trả card về tay");
         TransitionToState0();
     }
 

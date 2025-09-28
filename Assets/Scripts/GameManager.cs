@@ -1,9 +1,13 @@
 using System;
 using UnityEngine;
+using RivalWarCard;
 
 public class GameManager : MonoBehaviour
 {
     public static GameManager Instance { get; private set; }
+
+    public int attackHeroHealth = 20;
+    public int defendHeroHealth = 20;
 
     private int playerHealth;
     private int playerXP;
@@ -89,6 +93,25 @@ public class GameManager : MonoBehaviour
         set { difficulty = value; }
     }
 
+    public void DamageHero(Team team, int dmg)
+    {
+        if (team == Team.Attack)
+        {
+            attackHeroHealth -= dmg;
+            if (attackHeroHealth <= 0) EndGame(defenderWins:true);
+        }
+        else
+        {
+            defendHeroHealth -= dmg;
+            if (defendHeroHealth <= 0) EndGame(defenderWins:false);
+        }
+    }
+
+    private void EndGame(bool defenderWins)
+    {
+        Debug.Log(defenderWins ? "Defender wins!" : "Attacker wins!");
+        // TODO: show UI, stop game loop
+    }
     // Start is called once before the first execution of Update after the MonoBehaviour is created
     void Start()
     {
