@@ -17,11 +17,19 @@ namespace RivalWarCard
         public int strengh;//sức tấn công
         public string description;//mô tả khả năng vd: Triệu hồi: Gây 1AT cho kẻ địch, tiêu diệt nếu kẻ địch đó dưới 2AT
         public List<Attribute> attribute;//thuộc tính thẻ vd: Bơi, Úp, Săn,...
+        public CardCategory category;//Loại thẻ: Unit, Trick, Environment
         public Type type;//Bên tấn công có 4 type Demon,History, Army, Natural Bên phòng thử có 4 type Kinght, Beast, Fantasy, Future   
         public Team team;//Đội Tấn công và Đội Phòng thủ
         public int cost;//giá của thẻ
         public Rarity rarity;//độ hiếm của thẻ
 
+    }
+
+    public enum CardCategory
+    {
+        Unit,
+        Trick,
+        Environment
     }
 
     public enum Type

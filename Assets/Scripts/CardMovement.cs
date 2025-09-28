@@ -146,42 +146,48 @@ public class CardMovement : MonoBehaviour, IDragHandler, IPointerDownHandler, IP
         }
     }
 
-    // --- NEW: Try place logic: raycast scene find Lane and call BoardManager
+    // --- REPLACE only the TryPlaceOnLane() method in your CardMovement.cs file with this implementation ---
     private void TryPlaceOnLane()
     {
-        // Raycast from camera into world - requires Lane GameObjects have Collider
-        Ray ray = Camera.main.ScreenPointToRay(Input.mousePosition);
-        RaycastHit hit;
-        if (Physics.Raycast(ray, out hit))
-        {
-            Lane lane = hit.collider.GetComponentInParent<Lane>();
-            if (lane != null)
-            {
-                // attempt place via BoardManager
-                if (BoardManager.Instance != null && cardDisplay != null)
-                {
-                    bool placed = BoardManager.Instance.TryPlaceCard(cardDisplay, lane);
-                    if (placed)
-                    {
-                        // Remove card from hand (if HandManager provides such method)
-                        var hand = Object.FindFirstObjectByType<HandManager>();
-                        if (hand != null)
-                        {
-                            hand.RemoveCardFromHand(this.gameObject);
-                        }
-                        // disable drag interactions on placed card
-                        var cg = GetComponent<CanvasGroup>();
-                        if (cg != null) cg.blocksRaycasts = false;
+        Vector2 mousePos = Input.mousePosition;
 
-                        // optionally, set current state to 0 or freeze
-                        currentState = 0;
-                        return;
+        for (int i = 0; i < BoardManager.Instance.totalLanes; i++)
+        {
+            GridCell cell = BoardManager.Instance.GetLane(i);
+            if (cell == null) continue;
+
+            RectTransform laneRect = cell.GetComponent<RectTransform>();
+            if (laneRect != null && RectTransformUtility.RectangleContainsScreenPoint(laneRect, mousePos))
+            {
+                Debug.Log($"Chuột đang ở trong Lane {i} ({cell.kind})");
+
+                bool ok = TurnManager.Instance.PlayCard(cardDisplay, i);
+                //if (BoardManager.Instance.TryPlaceCard(cardDisplay, i))
+                if(ok)
+                {
+                    Debug.Log($"Card {cardDisplay.cardData.name} đặt thành công vào Lane {i}");
+                    var hand = FindFirstObjectByType<HandManager>();
+                    if (hand != null)
+                    {
+                        hand.RemoveCardFromHand(this.gameObject);
                     }
+                    var cg = GetComponent<CanvasGroup>();
+                    if (cg != null) cg.blocksRaycasts = false;
+
+                    if (playArrow != null) playArrow.SetActive(false);
+
+                    currentState = 0;
+                    return;
+                }
+                else
+                {
+                    Debug.LogWarning($"Không thể đặt {cardDisplay.cardData.name} vào Lane {i} (Lane full hoặc sai loại)");
                 }
             }
         }
 
-        // if not placed, return to hand
+        Debug.Log("Không tìm thấy lane hợp lệ → trả card về tay");
         TransitionToState0();
     }
+
 }
