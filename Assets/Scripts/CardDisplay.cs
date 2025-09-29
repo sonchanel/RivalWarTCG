@@ -77,10 +77,10 @@ public class CardDisplay : MonoBehaviour
         if (parentCell != null)
         {
             // remove for the correct team
-            if (cardData != null && cardData.team == Team.Attack)
-                parentCell.RemoveAttackCard();
+            if (cardData != null)
+                parentCell.ClearCell();
             else
-                parentCell.RemoveDefendCard();
+                return;
         }
         else
         {

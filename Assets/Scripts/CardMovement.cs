@@ -153,16 +153,15 @@ public class CardMovement : MonoBehaviour, IDragHandler, IPointerDownHandler, IP
 
         for (int i = 0; i < BoardManager.Instance.totalLanes; i++)
         {
-            GridCell cell = BoardManager.Instance.GetLane(i);
-            if (cell == null) continue;
+            Lane lane = BoardManager.Instance.GetLane(i);
+            if (lane == null || lane.playerCell == null) continue;
 
-            RectTransform laneRect = cell.GetComponent<RectTransform>();
+            RectTransform laneRect = lane.playerCell.GetComponent<RectTransform>();
             if (laneRect != null && RectTransformUtility.RectangleContainsScreenPoint(laneRect, mousePos))
             {
-                Debug.Log($"Chuột đang ở trong Lane {i} ({cell.kind})");
+                Debug.Log($"Chuột đang ở trong Lane {i} ({lane.kind})");
 
                 bool ok = TurnManager.Instance.PlayCard(cardDisplay, i);
-                //if (BoardManager.Instance.TryPlaceCard(cardDisplay, i))
                 if(ok)
                 {
                     Debug.Log($"Card {cardDisplay.cardData.name} đặt thành công vào Lane {i}");

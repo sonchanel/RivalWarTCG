@@ -3,6 +3,7 @@ using System.Collections;
 using System.Collections.Generic;
 using TMPro;
 using UnityEngine.UI;
+using System;
 
 namespace RivalWarCard
 {
@@ -32,8 +33,8 @@ namespace RivalWarCard
         public int turnNumber = 1;
 
         [Header("Coins (resource)")]
-        public int baseCoins = 3;
-        public int coinsPerTurn = 1; // tăng coins theo turn
+        public int baseCoins = 1;
+        public int coinsPerTurn = 0; // tăng coins theo turn
         public int attackerCoins;
         public int defenderCoins;
 
@@ -54,12 +55,12 @@ namespace RivalWarCard
         private void Update()
         {
             // update UI
-            phaseATText.text = $"{currentPhase}";
-            phaseDFText.text = $"{currentPhase}";
-            if (coinATText != null) coinATText.text = $"{attackerCoins}";
-            if (coinATText != null) coinATmainText.text = $"{attackerCoins}";
-            if (coinATText != null) coinDFmainText.text = $"{defenderCoins}";
-            if (coinDFText != null) coinDFText.text = $"{defenderCoins}";
+            // phaseATText.text = $"{currentPhase}";
+            // phaseDFText.text = $"{currentPhase}";
+            // if (coinATText != null) coinATText.text = $"{attackerCoins}";
+            // if (coinATText != null) coinATmainText.text = $"{attackerCoins}";
+            // if (coinATText != null) coinDFmainText.text = $"{defenderCoins}";
+            //if (coinDFText != null) coinDFText.text = $"{defenderCoins}";
         }
 
         public void StartNewTurn()
@@ -115,7 +116,7 @@ namespace RivalWarCard
         public bool PlayCard(CardDisplay cardDisplay, int laneIndex)
         {
             if (cardDisplay == null || cardDisplay.cardData == null) return false;
-
+            Console.Write("PlayCard requested: " + cardDisplay.cardData.cardName + " to lane " + laneIndex);
             Card c = cardDisplay.cardData;
             Team cardTeam = c.team;
 
@@ -200,45 +201,52 @@ namespace RivalWarCard
         // Combat resolution coroutine (left → right)
         private IEnumerator ResolveCombat()
         {
-            int lanesCount = BoardManager.Instance.LaneCount;
+            int lanesCount = BoardManager.Instance.totalLanes;
             Debug.Log("Combat phase starting...");
             for (int i = 0; i < lanesCount; i++)
             {
-                GridCell lane = BoardManager.Instance.GetLane(i);
+                Lane lane = BoardManager.Instance.GetLane(i);
                 if (lane == null) continue;
 
-                CardDisplay attacker = lane.attackCard;
-                CardDisplay defender = lane.defendCard;
+                CardDisplay attacker = lane.playerCell != null ? GetCurrentCard(lane.playerCell) : null;
+                CardDisplay defender = lane.enemyCell != null ? GetCurrentCard(lane.enemyCell) : null;
 
                 // attacker attacks first (design decision consistent with attacker-first)
                 if (attacker != null && defender != null)
                 {
                     // attacker hits defender
-                    defender.TakeDamage(attacker.currentStrength);
+                    defender.TakeDamage(attacker.cardData.strengh);
                     yield return new WaitForSeconds(0.15f);
                     // if defender still alive, counterattack
                     if (defender != null && defender.currentHealth > 0)
                     {
-                        attacker.TakeDamage(defender.currentStrength);
+                        attacker.TakeDamage(defender.cardData.strengh);
                         yield return new WaitForSeconds(0.15f);
                     }
                 }
                 else if (attacker != null && defender == null)
                 {
                     // deal damage to defender hero
-                    GameManager.Instance.DamageHero(defenderTeam, attacker.currentStrength);
+                    GameManager.Instance.DamageHero(defenderTeam, attacker.cardData.strengh);
                     yield return new WaitForSeconds(0.15f);
                 }
                 else if (defender != null && attacker == null)
                 {
                     // defender attacks attacker's hero
-                    GameManager.Instance.DamageHero(attackerTeam, defender.currentStrength);
+                    GameManager.Instance.DamageHero(attackerTeam, defender.cardData.strengh);
                     yield return new WaitForSeconds(0.15f);
                 }
             }
-
             Debug.Log("Combat phase ended.");
             yield return null;
         }
+
+        // Helper để lấy currentCard từ GridCell
+        private CardDisplay GetCurrentCard(GridCell cell)
+        {
+            var field = cell.GetType().GetField("currentCard", System.Reflection.BindingFlags.NonPublic | System.Reflection.BindingFlags.Instance);
+            return field != null ? field.GetValue(cell) as CardDisplay : null;
+        }
+
     }
 }
