@@ -3,6 +3,8 @@ using UnityEngine;
 
 public class ArcRenderer : MonoBehaviour
 {
+    [Header("Camera dùng cho World Space Canvas")]
+    public Camera renderCamera;
     public GameObject arrowPrefab;
     public GameObject dotPrefab;
     public int poolSize = 50;
@@ -18,7 +20,13 @@ public class ArcRenderer : MonoBehaviour
 
     void Start()
     {
+        if (renderCamera == null) {
+            var canvas = GetComponentInParent<Canvas>();
+            if (canvas != null && canvas.renderMode == RenderMode.ScreenSpaceCamera)
+                renderCamera = canvas.worldCamera;
+        }
         Vector3 mousePos = Input.mousePosition;
+        
         mousePos.z = 0f; 
 
         // Khởi tạo arrow ngay tại vị trí chuột
@@ -48,8 +56,16 @@ public class ArcRenderer : MonoBehaviour
     void Update()
     {
         Vector3 mousePos = Input.mousePosition;
-
-        mousePos.z = 0;
+        // Nếu có camera (World Space), chuyển mousePos sang world position
+        if (renderCamera != null)
+        {
+            mousePos.z = Mathf.Abs(renderCamera.transform.position.z);
+            mousePos = renderCamera.ScreenToWorldPoint(mousePos);
+        }
+        else
+        {
+            mousePos.z = 0;
+        }
 
         Vector3 startPos = transform.position;
         Vector3 midPoint = CalculateMidPoint(startPos, mousePos);
@@ -68,26 +84,23 @@ public class ArcRenderer : MonoBehaviour
             t = Mathf.Clamp(t, 0f, 1f); // Ensure t stays within the range [0, 1]
 
             Vector3 position = QuadraticBezierPoint(start, mid, end, t);
-            
+
             if (i != numDots - dotsToSkip)
             {
                 dotPool[i].transform.position = position;
                 dotPool[i].SetActive(true);
+                Debug.Log($"Dot {i} pos: {position}");
             }
             if (i == numDots - (dotsToSkip + 1) && i - dotsToSkip + 1 >= 0)
             {
                 arrowDirection = dotPool[i].transform.position;
             }
-            
         }
 
-        // Deactivate unused dots
+        // Deactivate unused dots (fix: tắt cả dot dư, kể cả i=0)
         for (int i = numDots - dotsToSkip; i < dotPool.Count; i++)
         {
-            if (i > 0)
-            {
-                dotPool[i].SetActive(false);
-            }
+            dotPool[i].SetActive(false);
         }
     }
 

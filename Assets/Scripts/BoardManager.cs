@@ -11,18 +11,12 @@ public class BoardManager : MonoBehaviour
         if (index < 0 || lanes == null || index >= lanes.Length) return null;
         return lanes[index];
     }
-    public static BoardManager Instance;
 
     [Header("Grid UI: mỗi lane có 2 slot (PlayerSlot, EnemySlot)")]
     public Transform lanesRoot;   // parent chứa tất cả lane
     public int totalLanes = 6;
 
     private Lane[] lanes;
-
-    private void Awake()
-    {
-        if (Instance == null) Instance = this;
-    }
 
     private void Start()
     {
@@ -60,12 +54,27 @@ public class BoardManager : MonoBehaviour
         }
     }
 
-    public bool TryPlaceCard(CardDisplay cardDisplay, int laneIndex)
+    public bool TryPlaceCard(CardDisplay cardDisplay, int laneIndex, PlayerSide localSide)
     {
         if (cardDisplay == null) return false;
         if (laneIndex < 0 || laneIndex >= lanes.Length) return false;
 
-        var cell = lanes[laneIndex].playerCell;
+        GridCell cell;
+        if (localSide == PlayerSide.Attack)
+        {
+            cell = lanes[laneIndex].playerCell;
+        }
+        else if (localSide == PlayerSide.Defense)
+        {
+            cell = lanes[laneIndex].playerCell;
+        }
+        else
+        {
+            return false;
+        }
+
+        Debug.Log("Placing card on lanesRoot: " + lanesRoot.name + " cell: " + cell.transform.name + " localSide: " + localSide);
+
         if (cell.CanPlace(cardDisplay.cardData))
         {
             cell.PlaceCard(cardDisplay);

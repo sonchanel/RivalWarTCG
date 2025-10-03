@@ -42,6 +42,10 @@ namespace RivalWarCard
         public Team attackerTeam = Team.Attack; // cố định
         public Team defenderTeam = Team.Defend;
 
+    // Thêm reference BoardManager để gán qua Inspector hoặc script
+    public BoardManager boardManager;
+    private bool boardManagerAssigned = false;
+
         private void Awake()
         {
             if (Instance == null) Instance = this;
@@ -76,8 +80,49 @@ namespace RivalWarCard
                 attackerCoins = turnNumber + coinsPerTurn;
                 defenderCoins = turnNumber + coinsPerTurn;
             }
-
             currentPhase = Phase.AttackPhase;
+
+
+            // Chỉ server mới thực hiện rút bài để đảm bảo đồng bộ
+            if (!Mirror.NetworkServer.active) return;
+            var hands = UnityEngine.Object.FindObjectsByType<HandManager>(FindObjectsSortMode.None);
+            foreach (var hand in hands)
+            {
+                if (hand == null)
+                {
+                    Debug.LogError("HandManager bị null trong danh sách hands!");
+                    continue;
+                }
+                if (hand.cardsInHand == null)
+                {
+                    Debug.LogError($"cardsInHand bị null ở hand: {hand.name}");
+                    continue;
+                }
+                if (hand.cardsInHand.Count < 10)
+                {
+                    var deck = hand.GetComponentInParent<DeckManager>();
+                    if (deck == null) Debug.LogWarning($"DeckManager null ở hand: {hand.name}");
+                    if (deck == null) deck = UnityEngine.Object.FindFirstObjectByType<DeckManager>();
+                    if (deck != null && deck.allCards != null && deck.allCards.Count > 0)
+                    {
+                        Card nextCard = deck.allCards[deck.currentHandSize % deck.allCards.Count];
+                        var netId = hand.GetComponent<Mirror.NetworkIdentity>();
+                        if (netId == null) Debug.LogWarning($"NetworkIdentity null ở hand: {hand.name}");
+                        if (netId != null && netId.connectionToClient != null)
+                        {
+                            hand.TargetDrawCard(netId.connectionToClient, nextCard.id);
+                        }
+                        else if (hand.isServer)
+                        {
+                            hand.AddCardToHand(nextCard);
+                        }
+                    }
+                    else
+                    {
+                        Debug.LogWarning($"Deck hoặc danh sách allCards bị null hoặc rỗng cho hand: {hand.name}");
+                    }
+                }
+            }
             Debug.Log($"Turn {turnNumber} started. Phase: {currentPhase}. Coins A:{attackerCoins} D:{defenderCoins}");
         }
 
@@ -138,10 +183,17 @@ namespace RivalWarCard
             }
 
             // Unit: place on board
-            bool placed = BoardManager.Instance.TryPlaceCard(cardDisplay, laneIndex);
+            if (boardManager == null)
+            {
+                Debug.LogError("Chưa gán boardManager cho TurnManager!");
+                return false;
+            }
+            var playerInfo = UnityEngine.Object.FindFirstObjectByType<PlayerInfo>();
+            PlayerSide localSide = playerInfo != null ? playerInfo.side : PlayerSide.None;
+            bool placed = boardManager.TryPlaceCard(cardDisplay, laneIndex, localSide);
             if (!placed) return false;
 
-            // deduct coins
+            // deduct coins 
             if (cardTeam == attackerTeam) attackerCoins -= c.cost; else defenderCoins -= c.cost;
 
             // remove from hand
@@ -201,11 +253,16 @@ namespace RivalWarCard
         // Combat resolution coroutine (left → right)
         private IEnumerator ResolveCombat()
         {
-            int lanesCount = BoardManager.Instance.totalLanes;
+            if (boardManager == null)
+            {
+                Debug.LogError("Chưa gán boardManager cho TurnManager!");
+                yield break;
+            }
+            int lanesCount = boardManager.totalLanes;
             Debug.Log("Combat phase starting...");
             for (int i = 0; i < lanesCount; i++)
             {
-                Lane lane = BoardManager.Instance.GetLane(i);
+                Lane lane = boardManager.GetLane(i);
                 if (lane == null) continue;
 
                 CardDisplay attacker = lane.playerCell != null ? GetCurrentCard(lane.playerCell) : null;

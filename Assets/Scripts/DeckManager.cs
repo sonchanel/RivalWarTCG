@@ -24,11 +24,6 @@ public class DeckManager : MonoBehaviour
 
         handManager = FindAnyObjectByType<HandManager>();
         maxHandSize = handManager.maxHandSize;
-        for (int i = 0; i < startingHandSize; i++)
-        {
-            Debug.Log($"Drawing Card");
-            DrawCard(handManager);
-        }
     }
 
     void Update()
@@ -36,6 +31,26 @@ public class DeckManager : MonoBehaviour
         if (handManager != null)
         {
             currentHandSize = handManager.cardsInHand.Count;
+        }
+    }
+
+    public void ShuffleDeck()
+    {
+        for (int i = 0; i < allCards.Count; i++)
+        {
+            Card temp = allCards[i];
+            int randomIndex = Random.Range(i, allCards.Count);
+            allCards[i] = allCards[randomIndex];
+            allCards[randomIndex] = temp;
+        }
+        currentIndex = 0; // Reset the index after shuffling
+    }
+
+    public void DrawStartingHand(HandManager handManager)
+    {
+        for (int i = 0; i < startingHandSize; i++)
+        {
+            DrawCard(handManager);
         }
     }
 

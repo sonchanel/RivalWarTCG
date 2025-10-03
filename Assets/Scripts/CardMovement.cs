@@ -22,6 +22,9 @@ public class CardMovement : MonoBehaviour, IDragHandler, IPointerDownHandler, IP
     // --- NEW: reference to CardDisplay on same object
     private CardDisplay cardDisplay;
 
+    // Thêm trường public để gán BoardManager đúng khi khởi tạo card
+    public BoardManager boardManager;
+
     private void Awake()
     {
         rectTransform = GetComponent<RectTransform>();
@@ -151,9 +154,28 @@ public class CardMovement : MonoBehaviour, IDragHandler, IPointerDownHandler, IP
     {
         Vector2 mousePos = Input.mousePosition;
 
-        for (int i = 0; i < BoardManager.Instance.totalLanes; i++)
+        // Xác định phe hiện tại
+        var playerInfo = FindFirstObjectByType<PlayerInfo>();
+        PlayerSide currentSide = playerInfo != null ? playerInfo.side : PlayerSide.None;
+        Team allowedTeam = (currentSide == PlayerSide.Attack) ? Team.Attack : Team.Defend;
+
+        if (cardDisplay == null || cardDisplay.cardData == null || cardDisplay.cardData.team != allowedTeam)
         {
-            Lane lane = BoardManager.Instance.GetLane(i);
+            Debug.LogWarning($"Không thể đặt card {cardDisplay?.cardData?.cardName} vì không đúng phe hiện tại!");
+            TransitionToState0();
+            return;
+        }
+
+        if (boardManager == null)
+        {
+            Debug.LogError("Chưa gán boardManager cho CardMovement!");
+            TransitionToState0();
+            return;
+        }
+
+        for (int i = 0; i < boardManager.totalLanes; i++)
+        {
+            Lane lane = boardManager.GetLane(i);
             if (lane == null || lane.playerCell == null) continue;
 
             RectTransform laneRect = lane.playerCell.GetComponent<RectTransform>();

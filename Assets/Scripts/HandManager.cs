@@ -3,9 +3,19 @@ using System.Collections.Generic;
 using UnityEngine;
 using RivalWarCard;
 using System;
+using Mirror;
 
-public class HandManager : MonoBehaviour
+public class HandManager : NetworkBehaviour
 {
+    [TargetRpc]
+    public void TargetDrawCard(NetworkConnectionToClient target, int cardId)
+    {
+        // Lấy Card từ Resources theo id
+        var allCards = Resources.LoadAll<Card>("Cards");
+        Card cardData = null;
+        foreach (var c in allCards) if (c.id == cardId) { cardData = c; break; }
+        if (cardData != null) AddCardToHand(cardData);
+    }
     public GameObject cardPrefab; //Assign card prefab in inspector
     public Transform handTransform; //Root of the hand position
     public float fanSpread = 7.5f;
@@ -15,9 +25,30 @@ public class HandManager : MonoBehaviour
     public int maxHandSize = 12;
     public List<GameObject> cardsInHand = new List<GameObject>(); //Hold a list of the card objects in our hand
 
+    // Thêm trường public để gán DeckManager đúng
+    public DeckManager deckManager;
+
     void Start()
     {
-
+        // Gán tự động nếu chưa gán qua Inspector
+        if (deckManager == null)
+        {
+            // Tìm DeckManager cùng Canvas
+            var canvas = GetComponentInParent<Canvas>();
+            if (canvas != null)
+            {
+                var deck = canvas.GetComponentInChildren<DeckManager>();
+                if (deck != null) deckManager = deck;
+            }
+            // Hoặc tìm theo tên (nếu cần)
+            if (deckManager == null)
+            {
+                var playerInfo = FindFirstObjectByType<PlayerInfo>();
+                string deckName = (playerInfo != null && playerInfo.side == PlayerSide.Attack) ? "DeckManager" : "DeckManager";
+                var deckObj = GameObject.Find(deckName);
+                if (deckObj != null) deckManager = deckObj.GetComponent<DeckManager>();
+            }
+        }
     }
 
     public void AddCardToHand(Card cardData)
@@ -35,6 +66,16 @@ public class HandManager : MonoBehaviour
             //display.UpdateCardDisplay();
         }
         //newCard.GetComponent<CardDisplay>().cardData = cardData;
+
+        // Gán boardManager đúng cho card mới sinh ra
+        var cardMove = newCard.GetComponent<CardMovement>();
+        if (cardMove != null)
+        {
+            // Tìm BoardManager gần nhất (trong cùng Canvas hoặc cha gần nhất)
+            var board = GetComponentInParent<BoardManager>();
+            if (board == null) board = FindFirstObjectByType<BoardManager>();
+            cardMove.boardManager = board;
+        }
 
         UpdateHandVisuals();
     }
